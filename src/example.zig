@@ -1,7 +1,7 @@
 const std = @import("std");
 const snappy = @import("lib.zig");
 
-fn testDb(a: std.mem.Allocator, data: [:0]const u8) !void {
+fn testCompression(a: std.mem.Allocator, data: [:0]const u8) !void {
     var compressed = std.ArrayList(u8).init(a);
     defer compressed.deinit();
     
@@ -17,8 +17,8 @@ fn testDb(a: std.mem.Allocator, data: [:0]const u8) !void {
         i += 1;
     }
     
-    try std.testing.expect(try snappy.compress(input.items, &compressed));
-    try std.testing.expect(try snappy.decompress(input.items, &decompressed));
+    try snappy.compress(input.items, &compressed);
+    try snappy.decompress(compressed.items, &decompressed);
     try std.testing.expectEqualSlices(u8, input.items, decompressed.items);
     
     std.debug.print(
@@ -33,8 +33,8 @@ pub fn main() void {
     const args = std.process.argsAlloc(a) catch return;
     defer a.free(args);
     
-    const path = if (args.len > 1) args[1] else "1234567890";
-    testDb(a, path) catch |err| {
+    const data = if (args.len > 1) args[1] else "1234567890";
+    testCompression(a, data) catch |err| {
         std.debug.print("error: ${i}\n", .{err});
     };
 }
