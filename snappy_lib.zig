@@ -19,7 +19,7 @@ pub fn configure(
     lib.linkLibCpp();
     
     lib.addIncludeDir(basedir ++ "/include");
-    lib.addSystemIncludeDir(dep_dirs.get("zpp").? ++ "/include");
+    lib.addIncludeDir(dep_dirs.get("zpp").? ++ "/include");
     lib.addIncludeDir(basedir ++ "/snappy");
     switch (target.getOsTag()) {
         .windows => {
