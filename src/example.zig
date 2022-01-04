@@ -33,7 +33,7 @@ pub fn main() void {
     const args = std.process.argsAlloc(a) catch return;
     defer a.free(args);
     
-    const data = if (args.len > 1) args[1] else "1234567890";
+    const data = if (args.len > 1) args[1] else "abcd1234#!";
     testCompression(a, data) catch |err| {
         std.debug.print("error: ${i}\n", .{err});
     };
