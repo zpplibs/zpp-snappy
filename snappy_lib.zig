@@ -46,7 +46,7 @@ pub fn configure(
         "-fno-exceptions",
         "-fno-rtti",
         "-DNDEBUG",
-        "-DHAVE_CONFIG_H",
+        "-DHAVE_CONFIG_H=1",
     });
 
     return lib;
