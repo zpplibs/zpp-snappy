@@ -12,22 +12,22 @@ const SnappyError = error {
     Zpp,
 };
 
-pub fn compress(data: []const u8, out: *std.ArrayList(u8)) !bool {
+pub fn compress(data: []const u8, out: *std.ArrayList(u8)) !void {
     if (!zpp.initialized) return SnappyError.Zpp;
-    return switch (c.zpp_snappy(true, @ptrCast([*c]const u8, data), data.len, out)) {
-        0 => true,
-        1 => SnappyError.Append,
-        else => SnappyError.Compress,
-    };
+    switch (c.zpp_snappy(true, @ptrCast([*c]const u8, data), data.len, out)) {
+        0 => return,
+        1 => return SnappyError.Append,
+        else => return SnappyError.Compress,
+    }
 }
 
-pub fn decompress(data: []const u8, out: *std.ArrayList(u8)) !bool {
+pub fn decompress(data: []const u8, out: *std.ArrayList(u8)) !void {
     if (!zpp.initialized) return SnappyError.Zpp;
-    return switch (c.zpp_snappy(false, @ptrCast([*c]const u8, data), data.len, out)) {
-        0 => true,
-        1 => SnappyError.Append,
-        else => SnappyError.Decompress,
-    };
+    switch (c.zpp_snappy(false, @ptrCast([*c]const u8, data), data.len, out)) {
+        0 => return,
+        1 => return SnappyError.Append,
+        else => return SnappyError.Decompress,
+    }
 }
 
 fn verify(
@@ -35,8 +35,8 @@ fn verify(
     compressed: *std.ArrayList(u8),
     decompressed: *std.ArrayList(u8),
 ) !void {
-    try std.testing.expect(try compress(input.items, compressed));
-    try std.testing.expect(try decompress(input.items, decompressed));
+    try compress(input.items, compressed);
+    try decompress(compressed.items, decompressed);
     try std.testing.expectEqualSlices(u8, input.items, decompressed.items);
     
     input.clearRetainingCapacity();
@@ -61,6 +61,13 @@ test "zig api" {
     try input.appendNTimes('c', 200);
     try input.appendNTimes('d', 200);
     try input.appendNTimes('e', 200);
+    try verify(&input, &compressed, &decompressed);
+    
+    try input.appendNTimes('f', 200);
+    try input.appendNTimes('g', 200);
+    try input.appendNTimes('h', 200);
+    try input.appendNTimes('i', 200);
+    try input.appendNTimes('j', 200);
     try verify(&input, &compressed, &decompressed);
     
     std.debug.print("zig api ok\n", .{});
