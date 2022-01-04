@@ -117,7 +117,7 @@ fn resolveCLibs(
     target: std.zig.CrossTarget,
     mode: std.builtin.Mode,
 ) void {
-    c_libs[0] = @import(".zigmod/deps/../../snappy_lib.zig").configure(
+    c_libs[0] = @import("snappy_lib.zig").configure(
         dirs._u8xgq6eugih6,
         dep_dirs._u8xgq6eugih6,
         dep_dirs._root,
