@@ -6,10 +6,11 @@ extern "C" {
 /// Returns 0 for success
 /// 1 for append failure
 /// 2 for operation failure
-uint8_t zpp_snappy(
-    bool compress,
+uint8_t
+zpp_snappy(
+    const bool compress,
     const char* data, const size_t data_len,
-    void* list_ptr
+    const void* list_ptr
 ) {
     uint8_t ret;
     std::string out;
@@ -25,7 +26,8 @@ uint8_t zpp_snappy(
 }
 
 /// Returns 0 on failure
-size_t zpp_snappy_get_uncompressed_len(
+size_t
+zpp_snappy_get_uncompressed_len(
     const char* data, const size_t data_len
 ) {
     size_t result;
