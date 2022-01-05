@@ -23,13 +23,13 @@ pub fn configure(
     lib.addIncludeDir(basedir ++ "/snappy");
     switch (target.getOsTag()) {
         .windows => {
-            lib.addIncludeDir(basedir ++ "/snappy/gn-platform/win");
+            lib.addIncludeDir(basedir ++ "/snappy/platform-include/win");
         },
         .macos => {
-            lib.addIncludeDir(basedir ++ "/snappy/gn-platform/mac");
+            lib.addIncludeDir(basedir ++ "/snappy/platform-include/mac");
         },
         else => {
-            lib.addIncludeDir(basedir ++ "/snappy/gn-platform/linux");
+            lib.addIncludeDir(basedir ++ "/snappy/platform-include/linux");
         }
     }
     lib.addCSourceFiles(&.{
