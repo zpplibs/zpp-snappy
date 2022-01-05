@@ -32,9 +32,9 @@ pub fn decompress(data: []const u8, out: *std.ArrayList(u8)) !void {
 
 /// Returns zero if not successful
 pub fn getUncompressedLen(data: []const u8) usize {
-    return @intCast(usize, c.zpp_snappy_get_uncompressed_len(
+    return c.zpp_snappy_get_uncompressed_len(
         @ptrCast([*c]const u8, data), data.len,
-    ));
+    );
 }
 
 fn verify(
