@@ -84,13 +84,16 @@ pub const package_data = struct {
         .directory = dirs._f3itt0eg63fb,
         .pkg = Pkg{ .name = "zpp", .path = .{ .path = dirs._f3itt0eg63fb ++ "/src/lib.zig" }, .dependencies = null },
         .c_include_dirs = &.{ "include" },
+        .c_libs = &.{
+            .{ .name = "zpp", .idx = 0 },
+        },
     };
     pub const _u8xgq6eugih6 = Package{
         .directory = dirs._u8xgq6eugih6,
         .pkg = Pkg{ .name = "zpp-snappy", .path = .{ .path = dirs._u8xgq6eugih6 ++ "/src/lib.zig" }, .dependencies = &.{ _f3itt0eg63fb.pkg.? } },
         .c_include_dirs = &.{ "include", "snappy" },
         .c_libs = &.{
-            .{ .name = "snappy", .idx = 0 },
+            .{ .name = "snappy", .idx = 1 },
         },
     };
     pub const _root = Package{
@@ -110,14 +113,22 @@ pub const pkgs = struct {
 
 
 // lazy
-var c_libs: [1]?*std.build.LibExeObjStep = undefined;
+var c_libs: [2]?*std.build.LibExeObjStep = undefined;
 
 fn resolveCLibs(
     b: *std.build.Builder,
     target: std.zig.CrossTarget,
     mode: std.builtin.Mode,
 ) void {
-    c_libs[0] = @import("snappy_lib.zig").configure(
+    c_libs[0] = @import(".zigmod/deps/v/git/github.com/zpplibs/zpp/branch-master/zpp_lib.zig").configure(
+        dirs._f3itt0eg63fb,
+        dep_dirs._f3itt0eg63fb,
+        dep_dirs._root,
+        b.allocator,
+        b.addStaticLibrary("zpp", null),
+        target, mode,
+    );
+    c_libs[1] = @import("snappy_lib.zig").configure(
         dirs._u8xgq6eugih6,
         dep_dirs._u8xgq6eugih6,
         dep_dirs._root,
