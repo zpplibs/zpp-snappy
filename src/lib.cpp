@@ -24,4 +24,12 @@ uint8_t zpp_snappy(
     return ret;
 }
 
+/// Returns 0 on failure
+size_t zpp_snappy_get_uncompressed_len(
+    const char* data, size_t data_len
+) {
+    size_t result;
+    return snappy::GetUncompressedLength(data, data_len, &result) ? result : 0;
+}
+
 } // "C"

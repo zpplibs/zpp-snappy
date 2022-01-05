@@ -30,6 +30,13 @@ pub fn decompress(data: []const u8, out: *std.ArrayList(u8)) !void {
     }
 }
 
+/// Returns zero if not successful
+pub fn getUncompressedLen(data: []const u8) usize {
+    return @intCast(usize, c.zpp_snappy_get_uncompressed_len(
+        @ptrCast([*c]const u8, data), data.len,
+    ));
+}
+
 fn verify(
     input: *std.ArrayList(u8),
     compressed: *std.ArrayList(u8),
@@ -37,7 +44,12 @@ fn verify(
 ) !void {
     try compress(input.items, compressed);
     try decompress(compressed.items, decompressed);
-    try std.testing.expectEqualSlices(u8, input.items, decompressed.items);
+    try std.testing.expectEqualSlices(u8,
+        input.items, decompressed.items,
+    );
+    try std.testing.expect(
+        input.items.len == getUncompressedLen(compressed.items),
+    );
     
     input.clearRetainingCapacity();
     compressed.clearRetainingCapacity();

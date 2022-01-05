@@ -15,6 +15,11 @@ uint8_t zpp_snappy(
     void* list_ptr
 );
 
+/// Returns 0 on failure
+size_t zpp_snappy_get_uncompressed_len(
+    const char* data, size_t data_len
+);
+
 #ifdef __cplusplus
 }
 #endif
