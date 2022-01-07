@@ -1,5 +1,5 @@
 const std = @import("std");
-const snappy = @import("lib.zig");
+const snappy = @import("zpp-snappy");
 
 fn testCompression(a: std.mem.Allocator, data: [:0]const u8) !void {
     var compressed = std.ArrayList(u8).init(a);
