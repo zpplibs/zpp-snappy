@@ -1,12 +1,24 @@
 const std = @import("std");
 const deps = @import("deps.zig");
 
+const mode_names = makeModeNames();
+var mode_name_idx: usize = undefined;
+
+fn makeModeNames() [@typeInfo(std.builtin.Mode).Enum.fields.len][]const u8 {
+    var names: [@typeInfo(std.builtin.Mode).Enum.fields.len][]const u8 = undefined;
+    inline for (@typeInfo(std.builtin.Mode).Enum.fields) |field, i| {
+        names[i] = "[" ++ field.name ++ "] ";
+    }
+    return names;
+}
+
 fn addTest(
     comptime root_src: []const u8,
     test_name: []const u8,
     b: *std.build.Builder,
 ) *std.build.LibExeObjStep {
     const t = b.addTest(root_src);
+    t.setNamePrefix(mode_names[mode_name_idx]);
     
     b.step(
         if (test_name.len != 0) test_name else "test:" ++ root_src,
@@ -40,6 +52,7 @@ fn addExecutable(
 pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
+    mode_name_idx = @enumToInt(mode);
     
     // tests
     const test_all = b.step("test", "Run all tests");
