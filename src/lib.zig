@@ -82,5 +82,5 @@ test "zig api" {
     try input.appendNTimes('j', 200);
     try verify(&input, &compressed, &decompressed);
     
-    std.debug.print("zig api ok\n", .{});
+    std.debug.print("ok\n", .{});
 }
