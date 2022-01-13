@@ -14,7 +14,7 @@ const SnappyError = error {
 
 pub fn compress(data: []const u8, out: *std.ArrayList(u8)) !void {
     if (!zpp.initialized) return SnappyError.Zpp;
-    switch (c.zpp_snappy(true, @ptrCast([*c]const u8, data), data.len, out)) {
+    switch (c.zpp_snappy(true, data.ptr, data.len, out)) {
         0 => return,
         1 => return SnappyError.Append,
         else => return SnappyError.Compress,
@@ -23,7 +23,7 @@ pub fn compress(data: []const u8, out: *std.ArrayList(u8)) !void {
 
 pub fn decompress(data: []const u8, out: *std.ArrayList(u8)) !void {
     if (!zpp.initialized) return SnappyError.Zpp;
-    switch (c.zpp_snappy(false, @ptrCast([*c]const u8, data), data.len, out)) {
+    switch (c.zpp_snappy(false, data.ptr, data.len, out)) {
         0 => return,
         1 => return SnappyError.Append,
         else => return SnappyError.Decompress,
@@ -33,7 +33,7 @@ pub fn decompress(data: []const u8, out: *std.ArrayList(u8)) !void {
 /// Returns zero if not successful
 pub fn getUncompressedLen(data: []const u8) usize {
     return c.zpp_snappy_get_uncompressed_len(
-        @ptrCast([*c]const u8, data), data.len,
+        data.ptr, data.len,
     );
 }
 
