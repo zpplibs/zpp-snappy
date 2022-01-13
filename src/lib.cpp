@@ -20,7 +20,7 @@ zpp_snappy(
         ret = snappy::Uncompress(data, data_len, &out) ? 0 : 2;
     }
     if (ret == 0) {
-        ret = zpp_array_list_u8_append(list_ptr, out.data(), out.size()) ? 0 : 1;
+        ret = zpp_array_list_u8_append_slice(list_ptr, out.data(), out.size()) ? 0 : 1;
     }
     return ret;
 }
