@@ -1,7 +1,7 @@
 const std = @import("std");
 const snappy = @import("zpp-snappy");
 
-fn testCompression(a: std.mem.Allocator, data: [:0]const u8) !void {
+fn run(a: std.mem.Allocator, data: [:0]const u8) !void {
     var compressed = std.ArrayList(u8).init(a);
     defer compressed.deinit();
     
@@ -27,14 +27,11 @@ fn testCompression(a: std.mem.Allocator, data: [:0]const u8) !void {
     );
 }
 
-pub fn main() void {
-    var allocator_instance = std.heap.GeneralPurposeAllocator(.{}){};
-    const a = allocator_instance.allocator();
-    const args = std.process.argsAlloc(a) catch return;
+pub fn main() !void {
+    const a = std.heap.raw_c_allocator;
+    const args = try std.process.argsAlloc(a);
     defer a.free(args);
     
     const data = if (args.len > 1) args[1] else "abcd1234#!";
-    testCompression(a, data) catch |err| {
-        std.debug.print("error: ${i}\n", .{err});
-    };
+    try run(a, data);
 }
