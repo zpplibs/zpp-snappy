@@ -25,6 +25,38 @@ zpp_snappy(
     return ret;
 }
 
+bool
+zpp_snappy_ss(
+    const bool compress,
+    const char* data, const size_t data_len,
+    const intptr_t ss_ptr, size_t* ss_len,
+    char** buf_out, size_t* capacity_out
+) {
+    auto buf = (std::string*)ss_ptr;
+    auto len = *ss_len;
+    auto current_size = buf->size();
+    if (len < current_size) {
+        // shrink
+        buf->resize(len);
+    } else if (len > current_size && 0 < (len = buf->capacity() - current_size)) {
+        // move to end
+        buf->append(buf->data() + current_size, len);
+    }
+    
+    const char* buf_data = buf->data();
+    bool ok = compress ? 0 < snappy::Compress(data, data_len, buf) :
+            snappy::Uncompress(data, data_len, buf);
+    if (ok) {
+        *ss_len = buf->size();
+        if (buf_data != buf->data()) {
+            // expanded
+            *buf_out = const_cast<char*>(buf->data());
+            *capacity_out = buf->capacity();
+        }
+    }
+    return ok;
+}
+
 /// Returns 0 on failure
 size_t
 zpp_snappy_get_uncompressed_len(

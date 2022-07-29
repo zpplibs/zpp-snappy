@@ -16,6 +16,14 @@ zpp_snappy(
     const void* list_ptr
 );
 
+bool
+zpp_snappy_ss(
+    const bool compress,
+    const char* data, const size_t data_len,
+    const intptr_t ss_ptr, size_t* ss_len,
+    char** buf_out, size_t* capacity_out
+);
+
 /// Returns 0 on failure
 size_t
 zpp_snappy_get_uncompressed_len(
