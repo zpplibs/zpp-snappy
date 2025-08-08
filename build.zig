@@ -1,8 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const ModuleMap = std.StringHashMap(*std.Build.Module);
-
 const SourceType = struct {
     with_exe: bool,
     with_test: bool,
@@ -13,7 +11,6 @@ const SourceType = struct {
 
 const BuildModule = struct {
     b: *std.Build,
-    m: ModuleMap,
     tests: *std.Build.Step,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
@@ -64,7 +61,7 @@ fn concat(b: *std.Build, prefix: []const u8, suffix: []const u8, def: []const u8
 }
 
 fn addModuleTo(
-    bm: *BuildModule,
+    bm: *const BuildModule,
     comptime source_type: SourceType,
     comptime root_src: []const u8,
     comptime run_name: []const u8,
@@ -78,7 +75,7 @@ fn addModuleTo(
 
     var b = bm.b;
     const mod = b.createModule(.{
-        .root_source_file = .{
+        .root_source_file = if (!is_zig) null else .{
             .src_path = .{
                 .owner = b,
                 .sub_path = root_src,
@@ -87,7 +84,6 @@ fn addModuleTo(
         .target = bm.target,
         .optimize = bm.optimize,
     });
-    bm.m.put(name, mod) catch unreachable;
 
     if (is_zig) {
         mod.addImport("build_options", bm.build_options);
@@ -191,9 +187,8 @@ pub fn build(b: *std.Build) void {
             "the app version",
         ) orelse parseGitRevHead(b.allocator) catch "master",
     );
-    var bm: BuildModule = .{
+    const bm: BuildModule = .{
         .b = b,
-        .m = ModuleMap.init(b.allocator),
         .tests = b.step("test", "Run all tests"),
         .target = target,
         .optimize = optimize,
@@ -205,7 +200,6 @@ pub fn build(b: *std.Build) void {
             "test-filter",
         ) orelse &.{},
     };
-    defer bm.m.deinit();
 
     // ======================================================================
     // deps
@@ -239,8 +233,6 @@ pub fn build(b: *std.Build) void {
     lib.addIncludePath(zpp_include);
     lib.addIncludePath(b.path("include"));
     lib.linkLibCpp();
-    lib.installHeader(lib_header, "zpp-snappy.h");
-
     lib.addCSourceFiles(.{
         .root = b.path("snappy"),
         .files = &.{
@@ -249,21 +241,22 @@ pub fn build(b: *std.Build) void {
             "snappy-stubs-internal.cc",
             "snappy.cc",
         },
-        .flags = c_flags,
+        .flags = cpp_flags,
     });
     lib.addCSourceFiles(.{
         .root = b.path("src"),
         .files = &.{
             "lib.cpp",
         },
-        .flags = c_flags,
+        .flags = cpp_flags,
     });
-    b.installArtifact(lib);
 
+    lib.installHeader(lib_header, "zpp-snappy.h");
     b.default_step.dependOn(&b.addInstallHeaderFile(
         lib_header,
         "zpp-snappy.h",
     ).step);
+    b.installArtifact(lib);
 
     // ======================================================================
     // module
