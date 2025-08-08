@@ -1,7 +1,7 @@
 .{
     .name = .zpp_snappy,
     .version = "0.1.0",
-    .fingerprint = 0xf1b648278c9411a0,
+    .fingerprint = 0xf1b648273bab7036,
     .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .zpp = .{
@@ -14,5 +14,6 @@
         "build.zig.zon",
         "src",
         "include",
+        "snappy",
     },
 }
