@@ -212,7 +212,12 @@ pub fn build(b: *std.Build) void {
     const zpp_lib = dep_zpp.artifact("zpp");
     const zpp_include = zpp_lib.getEmittedIncludeTree();
 
-    const snappy_path = b.path("snappy");
+    // const snappy_path = b.path("snappy");
+    const dep_snappy = b.dependency("snappy", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const snappy_path = dep_snappy.path(".");
 
     // ======================================================================
     // cpp lib

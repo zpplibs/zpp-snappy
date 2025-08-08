@@ -1,12 +1,16 @@
 .{
     .name = .zpp_snappy,
     .version = "0.1.0",
-    .fingerprint = 0xf1b648273bab7036,
+    .fingerprint = 0xf1b648274802d475,
     .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .zpp = .{
             .url = "git+https://github.com/zpplibs/zpp#c08c44535e8dff2fb5886e29be88943db0e13b05",
             .hash = "zpp-0.1.0-4EgyGqpXAAAT2xy-b1UtGIQT18jFFjDl3DXWKqDchFLo",
+        },
+        .snappy = .{
+            .url = "git+https://github.com/dyu/snappy#148f6c495a617f128eae9f54bd6f864a31829d61",
+            .hash = "N-V-__8AAPSzMgDvmUdYUwt2opCMZdrUbebJpXpPz9KrmgQt",
         },
     },
     .paths = .{
@@ -14,6 +18,5 @@
         "build.zig.zon",
         "src",
         "include",
-        "snappy",
     },
 }
