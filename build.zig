@@ -216,7 +216,7 @@ pub fn build(b: *std.Build) void {
     });
     const zpp = dep_zpp.module("zpp");
     const zpp_lib = dep_zpp.artifact("zpp");
-    const zpp_includes = zpp_lib.getEmittedIncludeTree();
+    const zpp_include = zpp_lib.getEmittedIncludeTree();
 
     // ======================================================================
     // cpp lib
@@ -236,7 +236,7 @@ pub fn build(b: *std.Build) void {
         else => lib.addIncludePath(b.path("snappy/platform-include/linux")),
     }
 
-    lib.addIncludePath(zpp_includes);
+    lib.addIncludePath(zpp_include);
     lib.addIncludePath(b.path("include"));
     lib.linkLibCpp();
     lib.installHeader(lib_header, "zpp-snappy.h");
@@ -274,7 +274,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     mod.addImport("zpp", zpp);
-    mod.addIncludePath(zpp_includes);
+    mod.addIncludePath(zpp_include);
 
     mod.linkLibrary(lib);
     mod.addImport("zpp_snappy_clib", addIncludePathsTo(
@@ -286,7 +286,7 @@ pub fn build(b: *std.Build) void {
             },
         ),
         &.{
-            zpp_includes,
+            zpp_include,
         },
     ).createModule());
 
