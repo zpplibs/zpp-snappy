@@ -212,6 +212,8 @@ pub fn build(b: *std.Build) void {
     const zpp_lib = dep_zpp.artifact("zpp");
     const zpp_include = zpp_lib.getEmittedIncludeTree();
 
+    const snappy_path = b.path("snappy");
+
     // ======================================================================
     // cpp lib
 
@@ -223,18 +225,18 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    lib.addIncludePath(b.path("snappy"));
+    lib.addIncludePath(snappy_path);
     switch (target.query.os_tag orelse builtin.target.os.tag) {
-        .windows => lib.addIncludePath(b.path("snappy/platform-include/win")),
-        .macos => lib.addIncludePath(b.path("snappy/platform-include/mac")),
-        else => lib.addIncludePath(b.path("snappy/platform-include/linux")),
+        .windows => lib.addIncludePath(snappy_path.path(b, "platform-include/win")),
+        .macos => lib.addIncludePath(snappy_path.path(b, "platform-include/mac")),
+        else => lib.addIncludePath(snappy_path.path(b, "platform-include/linux")),
     }
 
     lib.addIncludePath(zpp_include);
     lib.addIncludePath(b.path("include"));
     lib.linkLibCpp();
     lib.addCSourceFiles(.{
-        .root = b.path("snappy"),
+        .root = snappy_path,
         .files = &.{
             "snappy-c.cc",
             "snappy-sinksource.cc",
