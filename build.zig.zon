@@ -1,0 +1,18 @@
+.{
+    .name = .zpp_snappy,
+    .version = "0.1.0",
+    .fingerprint = 0xf1b648278c9411a0,
+    .minimum_zig_version = "0.14.0",
+    .dependencies = .{
+        .zpp = .{
+            .url = "git+https://github.com/zpplibs/zpp#fd99c04ae0e9c4f0672c6dd51bcadd102bb97481",
+            .hash = "zpp-0.1.0-4EgyGhNVAAAclFhZEZxKXg3-wyAoYdPSys6LhuEM_8Vi",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "include",
+    },
+}

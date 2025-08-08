@@ -1,73 +1,310 @@
 const std = @import("std");
-const deps = @import("deps.zig");
 
-const mode_names = blk: {
-    const fields = @typeInfo(std.builtin.Mode).Enum.fields;
+const ModuleMap = std.StringHashMap(*std.Build.Module);
+
+const SourceType = struct {
+    with_exe: bool,
+    with_test: bool,
+    const both: SourceType = .{ .with_exe = true, .with_test = true };
+    const exe_only: SourceType = .{ .with_exe = true, .with_test = false };
+    const test_only: SourceType = .{ .with_exe = false, .with_test = true };
+};
+
+const BuildModule = struct {
+    b: *std.Build,
+    m: ModuleMap,
+    tests: *std.Build.Step,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    optimize_idx: usize,
+    // extra
+    build_options: *std.Build.Module,
+    test_filters: []const []const u8,
+};
+
+const optimize_names = blk: {
+    // const fields = @typeInfo(std.builtin.OptimizeMode).Enum.fields;
+    const fields = std.meta.fields(std.builtin.OptimizeMode);
     var names: [fields.len][]const u8 = undefined;
-    inline for (fields) |field, i| names[i] = "[ " ++ field.name ++ " ] ";
+    for (fields, 0..) |field, i| names[i] = field.name;
     break :blk names;
 };
-var mode_name_idx: usize = undefined;
 
-fn addTest(
+const c_flags = &[_][]const u8{
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-DNDEBUG",
+};
+
+fn resolveSrcName(src: []const u8) []const u8 {
+    const slash_idx = std.mem.lastIndexOf(u8, src, "/");
+    const start = if (slash_idx) |idx| idx + 1 else 0;
+    const dot_idx = std.mem.indexOf(
+        u8,
+        if (start == 0) src else src[start..],
+        ".",
+    ) orelse 0;
+    return if (start != 0 and dot_idx != 0) src[start .. start + dot_idx] else src;
+}
+
+fn concat(b: *std.Build, prefix: []const u8, suffix: []const u8, def: []const u8) []const u8 {
+    const out = b.allocator.alloc(u8, prefix.len + suffix.len) catch return def;
+    @memcpy(out[0..prefix.len], prefix);
+    @memcpy(out[prefix.len..], suffix);
+    return out;
+}
+
+fn addModuleTo(
+    bm: *BuildModule,
+    comptime source_type: SourceType,
     comptime root_src: []const u8,
-    test_name: []const u8,
-    b: *std.build.Builder,
-) *std.build.LibExeObjStep {
-    const t = b.addTest(root_src);
-    t.setNamePrefix(mode_names[mode_name_idx]);
-    
-    b.step(
-        if (test_name.len != 0) test_name else "test:" ++ root_src,
-        "Run tests from " ++ root_src,
-    ).dependOn(&t.step);
-    
+    comptime run_name: []const u8,
+) *std.Build.Module {
+    const is_zig = std.mem.endsWith(u8, root_src, ".zig");
+
+    if (!source_type.with_test and !source_type.with_exe) @panic("Must atleast be exe or test.");
+    if (!is_zig and source_type.with_test) @panic("Tests can only be in .zig files");
+
+    const name = comptime resolveSrcName(root_src);
+
+    var b = bm.b;
+    const mod = b.createModule(.{
+        .root_source_file = .{
+            .src_path = .{
+                .owner = b,
+                .sub_path = root_src,
+            },
+        },
+        .target = bm.target,
+        .optimize = bm.optimize,
+    });
+    bm.m.put(name, mod) catch unreachable;
+
+    if (is_zig) {
+        mod.addImport("build_options", bm.build_options);
+    }
+    if (source_type.with_exe) {
+        const exe_name = if (bm.optimize == .ReleaseFast) name else concat(b, name ++ "--", optimize_names[bm.optimize_idx], name);
+        const exe = b.addExecutable(.{
+            .name = exe_name,
+            .root_module = mod,
+        });
+
+        if (!is_zig) {
+            exe.addCSourceFile(.{
+                .file = .{ .src_path = .{
+                    .owner = b,
+                    .sub_path = root_src,
+                } },
+                .flags = c_flags,
+            });
+            if (std.mem.endsWith(u8, root_src, ".c")) {
+                exe.linkLibC();
+            } else {
+                exe.linkLibCpp();
+            }
+        }
+        const run_cmd = b.addRunArtifact(exe);
+        run_cmd.step.dependOn(b.getInstallStep());
+        if (b.args) |args| run_cmd.addArgs(args);
+
+        b.step(
+            if (run_name.len != 0) run_name else "run:" ++ name,
+            "Run executable from " ++ root_src,
+        ).dependOn(&run_cmd.step);
+
+        b.installArtifact(exe);
+    }
+    if (is_zig and source_type.with_test) {
+        const prefix = name ++ "--test--";
+        const test_name = concat(b, prefix, optimize_names[bm.optimize_idx], prefix);
+        const t = b.addTest(.{
+            .name = test_name,
+            .root_module = mod,
+            .filters = bm.test_filters,
+        });
+
+        b.step(
+            "test:" ++ name,
+            "Run tests from " ++ root_src,
+        ).dependOn(&b.addRunArtifact(t).step);
+
+        b.installArtifact(t);
+        bm.tests.dependOn(&b.addRunArtifact(t).step);
+    }
+    return mod;
+}
+
+pub fn parseGitRevHead(a: std.mem.Allocator) ![]const u8 {
+    var child = std.process.Child.init(
+        &.{ "git", "rev-parse", "HEAD" },
+        a,
+    );
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
+    try child.spawn();
+    var child_stdout = try std.ArrayListUnmanaged(u8).initCapacity(
+        a,
+        50,
+    );
+    var child_stderr = std.ArrayListUnmanaged(u8).initBuffer(
+        child_stdout.items,
+    );
+    try child.collectOutput(
+        a,
+        &child_stdout,
+        &child_stderr,
+        std.math.maxInt(usize),
+    );
+    _ = try child.wait();
+    return std.mem.trim(u8, child_stdout.items, "\n");
+}
+
+pub fn addIncludePathsTo(
+    t: *std.Build.Step.TranslateC,
+    paths: []const std.Build.LazyPath,
+) *std.Build.Step.TranslateC {
+    for (paths) |p| t.addIncludePath(p);
     return t;
 }
 
-fn addExecutable(
-    comptime name: []const u8,
-    root_src: []const u8,
-    run_name: []const u8,
-    run_description: []const u8,
-    b: *std.build.Builder,
-) *std.build.LibExeObjStep {
-    const exe = b.addExecutable(name, root_src);
-    
-    const run_cmd = exe.run();
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
-    
-    b.step(
-        if (run_name.len != 0) run_name else "run:" ++ name,
-        if (run_description.len != 0) run_description else "Run " ++ name,
-    ).dependOn(&run_cmd.step);
-    
-    return exe;
-}
-
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
-    mode_name_idx = @enumToInt(mode);
-    
-    // tests
-    const test_all = b.step("test", "Run all tests");
-    const tests = &[_]*std.build.LibExeObjStep{
-        deps.addAllTo(
-            addTest("src/lib.zig", "test:lib", b),
-            b, target, mode,
-        ),
+    const optimize = b.standardOptimizeOption(.{});
+    const build_options = b.addOptions();
+    build_options.addOption(
+        []const u8,
+        "version",
+        b.option(
+            []const u8,
+            "version",
+            "the app version",
+        ) orelse parseGitRevHead(b.allocator) catch "master",
+    );
+    var bm: BuildModule = .{
+        .b = b,
+        .m = ModuleMap.init(b.allocator),
+        .tests = b.step("test", "Run all tests"),
+        .target = target,
+        .optimize = optimize,
+        .optimize_idx = @intFromEnum(optimize),
+        .build_options = build_options.createModule(),
+        .test_filters = b.option(
+            []const []const u8,
+            "test-filter",
+            "test-filter",
+        ) orelse &.{},
     };
-    for (tests) |t| test_all.dependOn(&t.step);
-    
-    // executables
-    deps.addAllTo(
-        addExecutable(
-            "example", "src/example.zig",
-            "run", "Run the example",
-            b,
+    defer bm.m.deinit();
+
+    // ======================================================================
+    // deps
+
+    const dep_zpp = b.dependency("zpp", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zpp = dep_zpp.module("zpp");
+    const zpp_lib = dep_zpp.artifact("zpp");
+    const zpp_includes = zpp_lib.getEmittedIncludeTree();
+
+    // ======================================================================
+    // cpp lib
+
+    const lib_header = b.path("include/zpp-snappy.h");
+
+    const lib = b.addStaticLibrary(.{
+        .name = "zpp_snappy",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    lib.addIncludePath(zpp_includes);
+    lib.addIncludePath(b.path("snappy"));
+    lib.addIncludePath(b.path("include"));
+    lib.linkLibCpp();
+    lib.installHeader(lib_header, "zpp-snappy.h");
+
+    lib.addCSourceFiles(.{
+        .root = b.path("snappy"),
+        .files = &.{
+            "snappy-c.cc",
+            "snappy-sinksource.cc",
+            "snappy-stubs-internal.cc",
+            "snappy.cc",
+        },
+        .flags = c_flags,
+    });
+    lib.addCSourceFiles(.{
+        .root = b.path("src"),
+        .files = &.{
+            "lib.cpp",
+        },
+        .flags = c_flags,
+    });
+    b.installArtifact(lib);
+
+    b.default_step.dependOn(&b.addInstallHeaderFile(
+        lib_header,
+        "zpp-snappy.h",
+    ).step);
+
+    // ======================================================================
+    // module
+
+    const mod = b.addModule("zpp_snappy", .{
+        .root_source_file = b.path("src/lib.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    mod.addImport("zpp", zpp);
+    mod.addIncludePath(zpp_includes);
+
+    mod.linkLibrary(lib);
+    mod.addImport("zpp_snappy_clib", addIncludePathsTo(
+        b.addTranslateC(
+            .{
+                .root_source_file = lib_header,
+                .target = target,
+                .optimize = optimize,
+            },
         ),
-        b, target, mode,
-    ).install();
+        &.{
+            zpp_includes,
+        },
+    ).createModule());
+
+    // ======================================================================
+    // tests
+
+    // const lib_test = b.addTest(.{
+    //     .root_source_file = b.path("src/lib.zig"),
+    //     .filters = bm.test_filters,
+    //     // .test_runner = .{ .path = b.path("test_runner.zig"), .mode = .simple },
+    // });
+    // lib_test.root_module.addImport("zpp", zpp);
+    // lib_test.root_module.addIncludePath(zpp_includes);
+    // lib_test.root_module.linkLibrary(lib);
+    // bm.tests.dependOn(&b.addRunArtifact(lib_test).step);
+
+    const mod_test = addModuleTo(
+        &bm,
+        .test_only,
+        "tests/test.zig",
+        "",
+    );
+    mod_test.addImport("zpp", zpp);
+    mod_test.addImport("zpp_snappy", mod);
+
+    // ======================================================================
+    // executables
+
+    const example = addModuleTo(
+        &bm,
+        .exe_only,
+        "src/example.zig",
+        "run",
+    );
+    example.addImport("zpp_snappy", mod);
 }
