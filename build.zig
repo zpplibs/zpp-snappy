@@ -318,7 +318,7 @@ pub fn build(b: *std.Build) void {
     const example = addModuleTo(
         &bm,
         .exe_only,
-        "src/example.zig",
+        "examples/example.zig",
         "run",
     );
     example.addImport("zpp_snappy", mod);
