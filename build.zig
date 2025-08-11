@@ -166,14 +166,6 @@ pub fn parseGitRevHead(a: std.mem.Allocator) ![]const u8 {
     return std.mem.trim(u8, child_stdout.items, "\n");
 }
 
-pub fn addIncludePathsTo(
-    t: *std.Build.Step.TranslateC,
-    paths: []const std.Build.LazyPath,
-) *std.Build.Step.TranslateC {
-    for (paths) |p| t.addIncludePath(p);
-    return t;
-}
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -210,7 +202,7 @@ pub fn build(b: *std.Build) void {
     });
     const zpp = dep_zpp.module("zpp");
     const zpp_lib = dep_zpp.artifact("zpp");
-    const zpp_include = zpp_lib.getEmittedIncludeTree();
+    // const zpp_include = zpp_lib.getEmittedIncludeTree();
 
     // const snappy_path = b.path("snappy");
     const dep_snappy = b.dependency("snappy", .{
@@ -237,8 +229,9 @@ pub fn build(b: *std.Build) void {
         else => lib.addIncludePath(snappy_path.path(b, "platform-include/linux")),
     }
 
-    lib.addIncludePath(zpp_include);
     lib.addIncludePath(b.path("include"));
+    // lib.addIncludePath(zpp_include);
+    lib.linkLibrary(zpp_lib);
     lib.linkLibCpp();
     lib.addCSourceFiles(.{
         .root = snappy_path,
@@ -259,10 +252,13 @@ pub fn build(b: *std.Build) void {
     });
 
     lib.installHeader(lib_header, "zpp-snappy.h");
-    b.default_step.dependOn(&b.addInstallHeaderFile(
-        lib_header,
-        "zpp-snappy.h",
-    ).step);
+    lib.installHeader(snappy_path.path(b, "snappy.h"), "snappy.h");
+    lib.installHeader(snappy_path.path(b, "snappy-c.h"), "snappy-c.h");
+    lib.installHeader(snappy_path.path(b, "snappy-stubs-public.h"), "snappy-stubs-public.h");
+    // b.default_step.dependOn(&b.addInstallHeaderFile(
+    //     lib_header,
+    //     "zpp-snappy.h",
+    // ).step);
     b.installArtifact(lib);
 
     // ======================================================================
@@ -274,21 +270,14 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     mod.addImport("zpp", zpp);
-    mod.addIncludePath(zpp_include);
+    // mod.addIncludePath(zpp_include);
 
     mod.linkLibrary(lib);
-    mod.addImport("zpp_snappy_clib", addIncludePathsTo(
-        b.addTranslateC(
-            .{
-                .root_source_file = lib_header,
-                .target = target,
-                .optimize = optimize,
-            },
-        ),
-        &.{
-            zpp_include,
-        },
-    ).createModule());
+    mod.addImport("zpp_snappy_clib", b.addTranslateC(.{
+        .root_source_file = lib_header,
+        .target = target,
+        .optimize = optimize,
+    }).createModule());
 
     // ======================================================================
     // tests

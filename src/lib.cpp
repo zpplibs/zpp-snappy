@@ -1,3 +1,4 @@
+#include <zpp.h>
 #include <zpp-snappy.h>
 #include <snappy.h>
 
