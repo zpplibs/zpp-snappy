@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .zpp = .{
-            .url = "git+https://github.com/zpplibs/zpp#4b2ed1f10af13e89659656d0ad2788c32c7f233e",
-            .hash = "zpp-0.1.0-4EgyGrZXAABpz3mNko_li2j58xd9EchydAAvrrcm8m5T",
+            .url = "git+https://github.com/zpplibs/zpp#0274b6e31f8e81ac131443a1bf5fb0b4d463fd45",
+            .hash = "zpp-0.1.0-4EgyGh5cAAATwVX4Z9hxatwwggpmUO253yOtePlnx66_",
         },
         .snappy = .{
             .url = "git+https://github.com/dyu/snappy#148f6c495a617f128eae9f54bd6f864a31829d61",

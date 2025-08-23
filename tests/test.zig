@@ -51,9 +51,13 @@ test "zig api" {
     var decompressed = std.ArrayList(u8).init(a);
     defer decompressed.deinit();
 
-    var compressedFSS = zpp.initFlexStdString(1);
+    var compressedFSS = zpp.initFlexStdString(.{
+        .min_capacity = 1,
+    });
     defer compressedFSS.deinit();
-    var decompressedFSS = zpp.initFlexStdString(1);
+    var decompressedFSS = zpp.initFlexStdString(.{
+        .min_capacity = 1,
+    });
     defer decompressedFSS.deinit();
 
     var input = std.ArrayList(u8).init(a);
