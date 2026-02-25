@@ -1,12 +1,12 @@
 .{
     .name = .zpp_snappy,
     .version = "0.1.0",
-    .fingerprint = 0xf1b648274802d475,
-    .minimum_zig_version = "0.14.0",
+    .fingerprint = 0xf1b6482751234457,
+    .minimum_zig_version = "0.14.1",
     .dependencies = .{
         .zpp = .{
-            .url = "git+https://github.com/zpplibs/zpp#07de90e255f49bd9388c7080509971db40009ce9",
-            .hash = "zpp-0.1.0-4EgyGkBlAACrb7mUF2Z2vFny1ZGM_Xt0PJBRSvZJVlX-",
+            .url = "git+https://github.com/zpplibs/zpp#4280bf96aa76754146d74e56e0db0d610405600a",
+            .hash = "zpp-0.1.0-Mcfbd2hpAAAhJhj1nTM-3iWOZxzZpuLMoshU4ST1W6cF",
         },
         .snappy = .{
             .url = "git+https://github.com/dyu/snappy#148f6c495a617f128eae9f54bd6f864a31829d61",

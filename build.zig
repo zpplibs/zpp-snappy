@@ -200,6 +200,7 @@ pub fn build(b: *std.Build) void {
     const dep_zpp = b.dependency("zpp", .{
         .target = target,
         .optimize = optimize,
+        .lib_only = true,
     });
     const zpp = dep_zpp.module("zpp");
     const zpp_lib = dep_zpp.artifact("zpp");
@@ -215,26 +216,23 @@ pub fn build(b: *std.Build) void {
     // ======================================================================
     // cpp lib
 
-    const lib_header = b.path("include/zpp-snappy.h");
-
-    const lib = b.addStaticLibrary(.{
-        .name = "zpp_snappy",
+    const lib_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
+        .link_libcpp = true,
     });
 
-    lib.addIncludePath(snappy_path);
+    lib_mod.addIncludePath(snappy_path);
     switch (target.query.os_tag orelse builtin.target.os.tag) {
-        .windows => lib.addIncludePath(snappy_path.path(b, "platform-include/win")),
-        .macos => lib.addIncludePath(snappy_path.path(b, "platform-include/mac")),
-        else => lib.addIncludePath(snappy_path.path(b, "platform-include/linux")),
+        .windows => lib_mod.addIncludePath(snappy_path.path(b, "platform-include/win")),
+        .macos => lib_mod.addIncludePath(snappy_path.path(b, "platform-include/mac")),
+        else => lib_mod.addIncludePath(snappy_path.path(b, "platform-include/linux")),
     }
 
-    lib.addIncludePath(b.path("include"));
+    lib_mod.addIncludePath(b.path("include"));
     // lib.addIncludePath(zpp_include);
-    lib.linkLibrary(zpp_lib);
-    lib.linkLibCpp();
-    lib.addCSourceFiles(.{
+    lib_mod.linkLibrary(zpp_lib);
+    lib_mod.addCSourceFiles(.{
         .root = snappy_path,
         .files = &.{
             "snappy-c.cc",
@@ -244,12 +242,20 @@ pub fn build(b: *std.Build) void {
         },
         .flags = cpp_flags,
     });
-    lib.addCSourceFiles(.{
+    lib_mod.addCSourceFiles(.{
         .root = b.path("src"),
         .files = &.{
             "lib.cpp",
         },
         .flags = cpp_flags,
+    });
+
+    const lib_header = b.path("include/zpp-snappy.h");
+
+    const lib = b.addLibrary(.{
+        .linkage = .static,
+        .name = "zpp_snappy",
+        .root_module = lib_mod,
     });
 
     lib.installHeader(lib_header, "zpp-snappy.h");

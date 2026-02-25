@@ -3,9 +3,9 @@ const zpp = @import("zpp");
 const snappy = @import("zpp_snappy");
 
 fn verify(
-    input: *std.ArrayList(u8),
-    compressed: *std.ArrayList(u8),
-    decompressed: *std.ArrayList(u8),
+    input: *zpp.ArrayList(u8),
+    compressed: *zpp.ArrayList(u8),
+    decompressed: *zpp.ArrayList(u8),
     compressedFSS: *zpp.FlexStdString,
     decompressedFSS: *zpp.FlexStdString,
 ) !void {
@@ -46,9 +46,9 @@ fn verify(
 test "zig api" {
     const a = std.testing.allocator;
 
-    var compressed = std.ArrayList(u8).init(a);
+    var compressed = zpp.ArrayList(u8).init(a);
     defer compressed.deinit();
-    var decompressed = std.ArrayList(u8).init(a);
+    var decompressed = zpp.ArrayList(u8).init(a);
     defer decompressed.deinit();
 
     var compressedFSS = zpp.initFlexStdString(.{
@@ -60,7 +60,7 @@ test "zig api" {
     });
     defer decompressedFSS.deinit();
 
-    var input = std.ArrayList(u8).init(a);
+    var input = zpp.ArrayList(u8).init(a);
     defer input.deinit();
 
     try input.appendNTimes('a', 200);
