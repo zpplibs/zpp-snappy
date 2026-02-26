@@ -180,6 +180,11 @@ pub fn build(b: *std.Build) void {
             "the app version",
         ) orelse parseGitRevHead(b.allocator) catch "master",
     );
+    const lib_only = b.option(
+        bool,
+        "lib_only",
+        "whether to configure lib only for the build",
+    ) orelse false;
     const bm: BuildModule = .{
         .b = b,
         .tests = b.step("test", "Run all tests"),
@@ -285,6 +290,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     }).createModule());
+
+    if (lib_only) return;
 
     // ======================================================================
     // tests
