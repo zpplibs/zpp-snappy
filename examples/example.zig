@@ -1,14 +1,15 @@
 const std = @import("std");
 const snappy = @import("zpp_snappy");
+const zpp = snappy.zpp;
 
 fn run(a: std.mem.Allocator, data: [:0]const u8) !void {
-    var compressed = std.ArrayList(u8).init(a);
+    var compressed = zpp.ArrayList(u8).init(a);
     defer compressed.deinit();
 
-    var decompressed = std.ArrayList(u8).init(a);
+    var decompressed = zpp.ArrayList(u8).init(a);
     defer decompressed.deinit();
 
-    var input = std.ArrayList(u8).init(a);
+    var input = zpp.ArrayList(u8).init(a);
     defer input.deinit();
 
     var i: usize = 0;

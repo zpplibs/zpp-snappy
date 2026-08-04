@@ -1,5 +1,5 @@
 const std = @import("std");
-const zpp = @import("zpp");
+pub const zpp = @import("zpp");
 
 const c = @cImport({
     @cInclude("zpp-snappy.h");
